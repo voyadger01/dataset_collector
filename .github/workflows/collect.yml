@@ -33,27 +33,42 @@ jobs:
       - name: Process projects
         run: |
           mkdir -p output
-          find dataset_sources -mindepth 2 -maxdepth 2 -type d | while read proj; do
-            name=$(basename "$proj")
-            mkdir -p "work/$name" && cp -r "$proj"/* "work/$name/"
-            cd "work/$name"
-            
-            rm -rf build bin; find . -name "*.o" -delete 2>/dev/null
-            
-            if [ -f Makefile ]; then
-              make -j2 || { echo "SKIP: $name"; cd ../..; continue; }
-            elif [ -f CMakeLists.txt ]; then
-              cmake -B build && cmake --build build || { echo "SKIP: $name"; cd ../..; continue; }
-            else
-              echo "SKIP: $name (no build file)"; cd ../..; continue
-            fi            
-            cd ../..
-            mkdir -p "output/$name"
-            cp -r "work/$name"/* "output/$name/"
-            [ -f "work/$name/info.txt" ] || echo -e "Name: $name\nLanguage: auto\nBuild: auto\nOutput: auto\nDescription: auto" > "output/$name/info.txt"
+          for lang in c cpp mixed; do
+            [ -d "dataset_sources/$lang" ] || continue
+            find "dataset_sources/$lang" -mindepth 1 -maxdepth 1 -type d | while read -r proj; do
+              name=$(basename "$proj")
+              mkdir -p "work/$name" && cp -r "$proj"/* "work/$name/" 2>/dev/null || continue
+              cd "work/$name" || continue
+
+              rm -rf build bin .git 2>/dev/null
+              find . -name "*.o" -delete 2>/dev/null
+              mkdir -p bin build 2>/dev/null || true
+              git submodule update --init --recursive 2>/dev/null || true
+
+              build_success=false
+              if [ -f "Makefile" ]; then
+                make -j2 >/dev/null 2>&1 && build_success=true
+              elif [ -f "CMakeLists.txt" ]; then
+                cmake -B build -S . >/dev/null 2>&1 && cmake --build build >/dev/null 2>&1 && build_success=true
+              fi
+
+              if [ "$build_success" = false ]; then
+                cd ../.. || continue
+                continue
+              fi
+
+              cd ../.. || continue
+              mkdir -p "output/$name"
+              cp -r "work/$name"/* "output/$name/" 2>/dev/null || continue
+
+              if [ ! -f "output/$name/info.txt" ]; then
+                printf "Name: %s\nLanguage: %s\nBuild: auto\nOutput: auto\nDescription: Auto-imported project\n" "$name" "$lang" > "output/$name/info.txt"
+              fi
+            done
           done
 
       - uses: actions/upload-artifact@v4
         with:
           name: dataset-result
           path: output/
+          retention-days: 90
