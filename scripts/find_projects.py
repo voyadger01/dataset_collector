@@ -176,7 +176,7 @@ class ProjectFinder:
 def main():
     base_directory = Path("dataset_sources")
     languages_to_search = ["c", "cpp"]
-    TARGET_PROJECTS_PER_LANGUAGE = 10
+    TARGET_PROJECTS_PER_LANGUAGE = 500
     
     finder = ProjectFinder()
     finder.collect_projects(base_directory, languages_to_search, TARGET_PROJECTS_PER_LANGUAGE)
