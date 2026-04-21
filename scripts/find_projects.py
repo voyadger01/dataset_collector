@@ -139,7 +139,7 @@ class ProjectFinder:
             added = 0
             page = 1
             checked = 0
-            max_checks = 150
+            max_checks = 500
 
             print(f"\nCollecting {language.upper()} (target: {target_count})...")
 
@@ -176,7 +176,7 @@ class ProjectFinder:
 def main():
     base_directory = Path("dataset_sources")
     languages_to_search = ["c", "cpp"]
-    TARGET_PROJECTS_PER_LANGUAGE = 500
+    TARGET_PROJECTS_PER_LANGUAGE = 100
     
     finder = ProjectFinder()
     finder.collect_projects(base_directory, languages_to_search, TARGET_PROJECTS_PER_LANGUAGE)
