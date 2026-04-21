@@ -1,0 +1,5 @@
+Name: simple_mixed
+Language: C/C++
+Build: make
+Output: simple_mixed
+Description: Minimal mixed C/C++ project demonstrating C function calls from C++ code
