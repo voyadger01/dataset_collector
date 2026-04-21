@@ -1,0 +1,39 @@
+name: Build Dataset
+on: [push, workflow_dispatch]
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install deps
+        run: sudo apt-get update && sudo apt-get install -y gcc g++ cmake make
+
+      - name: Process projects
+        run: |
+          mkdir -p output
+          find dataset_sources -mindepth 2 -maxdepth 2 -type d | while read proj; do
+            name=$(basename "$proj")
+            mkdir -p "work/$name" && cp -r "$proj"/* "work/$name/"
+            cd "work/$name"
+            
+            rm -rf build bin; find . -name "*.o" -delete
+            
+            if [ -f Makefile ]; then
+              make || { echo "SKIP: $name"; cd ../..; continue; }
+            elif [ -f CMakeLists.txt ]; then
+              mkdir build && cd build && cmake .. && make || { echo "SKIP: $name"; cd ../..; continue; }
+            else
+              echo "SKIP: $name (no build file)"; cd ../..; continue
+            fi
+            cd ../..
+
+            mkdir -p "output/$name"
+            cp -r "work/$name"/* "output/$name/"
+            echo -e "Name: $name\nLanguage: auto\nBuild: auto\nOutput: auto\nDescription: auto" > "output/$name/info.txt"
+          done
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dataset-result
+          path: output/
