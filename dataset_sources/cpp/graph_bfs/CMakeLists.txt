@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 3.10)
+project(GraphBFS)
+set(CMAKE_CXX_STANDARD 14)
+add_executable(graph_bfs src/main.cpp src/graph.cpp)
+target_include_directories(graph_bfs PRIVATE src)

@@ -1,0 +1,5 @@
+Name: graph_bfs
+Language: C++
+Build: cmake
+Output: graph_bfs
+Description: Graph connectivity check using BFS algorithm

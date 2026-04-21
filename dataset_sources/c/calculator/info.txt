@@ -1,0 +1,5 @@
+Name: calculator
+Language: C
+Build: make
+Output: calculator
+Description: Simple CLI calculator with add and multiply functions
