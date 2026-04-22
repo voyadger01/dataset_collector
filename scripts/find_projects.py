@@ -28,7 +28,6 @@ class ProjectFinder:
             resp = self.session.get(url, params=params, timeout=15)
             resp.raise_for_status()
             if resp.status_code == 403 and "rate limit" in resp.text.lower():
-                print("  Rate limit exceeded. Pausing for 60 seconds.")
                 time.sleep(60)
                 return []
             return resp.json().get("items", [])
@@ -81,6 +80,28 @@ class ProjectFinder:
         for obj_file in target_dir.rglob("*.o"):
             obj_file.unlink()
 
+    def _restructure_project(self, target_dir: Path):
+        src_dir = target_dir / "src"
+        src_dir.mkdir(exist_ok=True)
+        root_files = {"makefile", "cmakelists.txt", "readme", "license", "info.txt", ".gitignore"}
+        for ext in ["*.c", "*.cpp", "*.cc", "*.cxx", "*.h", "*.hpp", "*.hh", "*.hxx"]:
+            for f in target_dir.rglob(ext):
+                if f.parent == src_dir:
+                    continue
+                if f.name.lower() in root_files:
+                    continue
+                rel_path = f.relative_to(target_dir)
+                dest = src_dir / rel_path
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                if not dest.exists():
+                    f.rename(dest)
+        for d in sorted(target_dir.rglob("*"), key=lambda p: len(p.parts), reverse=True):
+            if d.is_dir() and d != src_dir:
+                try:
+                    d.rmdir()
+                except OSError:
+                    pass
+
     def check_and_clone(self, repo_url: str, target_dir: Path) -> Optional[Dict]:
         if target_dir.exists():
             shutil.rmtree(target_dir)
@@ -126,6 +147,7 @@ class ProjectFinder:
         )
 
     def save_project(self, repo_data: Dict, target_dir: Path, project_name: str):
+        self._restructure_project(target_dir)
         info_content = self.generate_info_content(repo_data, project_name)
         (target_dir / "info.txt").write_text(info_content, encoding="utf-8")
 
@@ -134,50 +156,37 @@ class ProjectFinder:
         token = os.getenv("GITHUB_TOKEN")
         if token:
             self.session.headers["Authorization"] = f"token {token}"
-
         for language in languages:
             added = 0
             page = 1
             checked = 0
-            max_checks = 500
-
-            print(f"\nCollecting {language.upper()} (target: {target_count})...")
-
+            max_checks = 1000
             while added < target_count and checked < max_checks:
                 repos = self.search_repos_page(language, page=page, per_page=20)
                 if not repos:
                     break
-
                 for repo in repos:
                     if added >= target_count or checked >= max_checks:
                         break
                     checked += 1
                     repo_name = repo["name"]
-
                     if any((base_dir / lang / repo_name).exists() for lang in ["c", "cpp", "mixed"]):
                         continue
-
                     temp_dir = base_dir / "temp_clone"
                     result = self.check_and_clone(repo["html_url"], temp_dir)
-
                     if result:
                         final_dir = base_dir / result["language"] / repo_name
                         shutil.move(temp_dir, final_dir)
                         self.save_project(result, final_dir, repo_name)
                         added += 1
-                        print(f"  [{added}/{target_count}] {repo_name}")
                     else:
                         shutil.rmtree(temp_dir, ignore_errors=True)
-
                 page += 1
-
-            print(f"Completed {language.upper()}: found {added}/{target_count}")
 
 def main():
     base_directory = Path("dataset_sources")
     languages_to_search = ["c", "cpp"]
-    TARGET_PROJECTS_PER_LANGUAGE = 100
-    
+    TARGET_PROJECTS_PER_LANGUAGE = 5
     finder = ProjectFinder()
     finder.collect_projects(base_directory, languages_to_search, TARGET_PROJECTS_PER_LANGUAGE)
 
