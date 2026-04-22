@@ -41,11 +41,21 @@ for lang in c cpp mixed; do
 
     out_proj="$OUT_DIR/$proj_name"
     mkdir -p "$out_proj"
-    
-    [ -d src ] && cp -r src "$out_proj/"
-    [ -f Makefile ] && cp Makefile "$out_proj/"
-    [ -f CMakeLists.txt ] && cp CMakeLists.txt "$out_proj/"
-    [ -f info.txt ] && cp info.txt "$out_proj/"
+    cp -r "$work_proj/"* "$out_proj/" 2>/dev/null || continue
+
+    if [ ! -f "$out_proj/info.txt" ]; then
+      build_type="auto"
+      [ -f "$work_proj/Makefile" ] && build_type="make"
+      [ -f "$work_proj/CMakeLists.txt" ] && build_type="cmake"
+
+      cat > "$out_proj/info.txt" <<EOF
+Name: $proj_name
+Language: $lang
+Build: $build_type
+Output: auto
+Description: Auto-compiled project
+EOF
+    fi
 
     cd "$APP_DIR"
   done

@@ -21,3 +21,5 @@ docker run --rm \
   -v $(pwd)/scripts:/app/scripts \
   dataset-builder bash /app/scripts/build.sh
 ```
+
+all of this can be automatically done by workflow(start workflow)
