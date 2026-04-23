@@ -20,7 +20,7 @@ class ProjectFinder:
         self.asm_pattern = re.compile(r'\basm\b|__asm__|__asm', re.IGNORECASE)
 
     def search_repos_page(self, language: str, page: int = 1, per_page: int = 20) -> List[Dict]:
-        query = f"language:{language} stars:1..500 size:<50000"
+        query = f"language:{language} stars:1..500 size:<70000"
         query += " -topic:qt -topic:gtk -topic:gui -topic:electron"
         url = f"{self.base_url}/search/repositories"
         params = {"q": query, "sort": "stars", "order": "asc", "per_page": per_page, "page": page}
@@ -139,7 +139,7 @@ class ProjectFinder:
             added = 0
             page = 1
             checked = 0
-            max_checks = 500
+            max_checks = 3000
 
             print(f"\nCollecting {language.upper()} (target: {target_count})...")
 
